@@ -2,11 +2,14 @@ import random
 import numpy as np
 
 
-def tex_poly(p):
-    b = brancher(p)
+def tex_poly(q=False):
+    if quad:
+        b = quad()
+    else:
+        b = brancher()
     # print b + "\n\n\n\n\n"
     b = b.replace("x^0", "").replace("^1 ", " ")
-    b = b.replace("- -", "+ ").replace("+ -", "+ ")
+    b = b.replace("- -", "+ ").replace("+ -", "- ")
     multiline = len(b) > 100
 
     s = ''
@@ -17,7 +20,8 @@ def tex_poly(p):
     if multiline:
         s += '\n' + r"\usepackage{breqn}"
 
-    s += '\n\n' + r"\begin{document}" + '\n\n'
+    s += '\n\n' + r"\begin{document}"
+    s += '\n\n' + r"\pagenumbering{gobble}" + '\n\n'
     if multiline:
         s += r"\begin{dmath*}"
     else:
@@ -32,7 +36,12 @@ def tex_poly(p):
     return s
 
 
-def brancher(p):
+# def brancher(p):
+#     for i in range(5):
+
+
+def brancher():
+    p = .55
     if random.random() < p:
         sig = np.random.poisson(.223)
         if sig == 0:
@@ -46,3 +55,11 @@ def brancher(p):
             return brancher(p) + " + " + brancher(p)
         else:
             return brancher(p) + " - " + brancher(p)
+
+def quad():
+    a,b,c = [(int(random.gauss(0, 10))) for i in range(3)]
+    return "{}x^{{2}} + {}x + {}".format(a,b,c)
+
+
+print tex_poly(q=True)
+# print quad()
