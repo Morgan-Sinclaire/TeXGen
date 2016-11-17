@@ -5,9 +5,9 @@ import numpy as np
 from timeit import timeit
 from brancher import *
 
-
+#
 def jpg():
-    content = tex_poly(False)
+    content,indic = tex_poly(random.choice(symbols))
 
     with open('expression.tex','w') as f:
         f.write(content)
@@ -15,18 +15,17 @@ def jpg():
     os.system("latex expression scriptname >/dev/null")
     os.system("dvipng -D 200 expression -T 16cm,5cm >/dev/null")
 
-    return io.imread('expression1.png')
+    # return io.imread('expression1.png'),pos
+    return indic
 
-sample_size = 10
-# data = np.array([jpg() for i in range(sample_size)])
-#
-# print data.shape
-# for i in range(sample_size):
-#     a = jpg()
-#     if a.shape != (393, 1259):
-#         print a.shape
-#         ImageViewer(a).show()
-# for i in range(10):
-#     print jpg().shape
 
-ImageViewer(jpg()).show()
+# def gen(n_samples):
+#     labels = np.zeros((1000,7))
+
+labels = np.zeros((1000,7))
+
+for i in xrange(1000):
+    labels[i] = jpg()
+    os.system("mv expression1.png images/expression{}.png".format(i))
+
+np.savetxt("labels/labels.csv", labels)

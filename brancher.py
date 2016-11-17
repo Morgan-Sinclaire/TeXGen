@@ -1,16 +1,13 @@
 import random
 import numpy as np
 
-
-def tex_poly(q=False):
-    if quad:
-        b = quad()
-    else:
-        b = brancher()
+#
+def tex_poly(s):
+    expr,indic = symbol()
     # print b + "\n\n\n\n\n"
-    b = b.replace("x^0", "").replace("^1 ", " ")
-    b = b.replace("- -", "+ ").replace("+ -", "- ")
-    multiline = len(b) > 100
+    # expr = expr.replace("x^0", "").replace("^1 ", " ")
+    # expr = expr.replace("- -", "+ ").replace("+ -", "- ")
+    multiline = len(expr) > 100
 
     s = ''
     s += r"\documentclass{article}"
@@ -26,20 +23,18 @@ def tex_poly(q=False):
         s += r"\begin{dmath*}"
     else:
         s += r"\begin{equation*}"
-    s += '\n' + b + '\n'
+    s += '\n' + expr + '\n'
     if multiline:
         s += r"\end{dmath*}"
     else:
         s += r"\end{equation*}"
     s += '\n\n' + r"\end{document}"
-
-    return s
-
-
-# def brancher(p):
-#     for i in range(5):
+    return s,indic
 
 
+
+# Creates a polynomial with random exponents, coefficients, and number of terms
+# Returns it as a TeX-friendly string
 def brancher():
     p = .55
     if random.random() < p:
@@ -56,10 +51,23 @@ def brancher():
         else:
             return brancher(p) + " - " + brancher(p)
 
+# Creates a quadratic of the form ax^{2} + bx + c
+# Returns it as a TeX-friendly string, as well as the sign of the first coefficient
 def quad():
     a,b,c = [(int(random.gauss(0, 10))) for i in range(3)]
-    return "{}x^{{2}} + {}x + {}".format(a,b,c)
+    var = "x" #random.choice(("x", "m", "t"))
+    expr = "{}{}^{{2}} + {}{} + {}".format(a,var,b,var,c)
+    pos = int(a>0)
+    return expr,pos
 
+symbols = map(lambda x: x[:-1], "\gamma, \Gamma, \pi, \Pi, \phi, \mu, \Phi,".split())
 
-print tex_poly(q=True)
-# print quad()
+# Returns a random Greek symbol, as well as an index indicating which symbol was picked
+def symbol():
+    index = random.randrange(len(symbols))
+    indic = np.zeros(len(symbols))
+    indic[index] = 1
+    return symbols[index], indic
+
+for s in symbols:
+    tex_poly(s)
