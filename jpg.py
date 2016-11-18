@@ -5,27 +5,35 @@ import numpy as np
 from timeit import timeit
 from brancher import *
 
-#
-def jpg():
-    content,indic = tex_poly(random.choice(symbols))
+# Takes a LaTeX string and indicator label, compiles png and returns indicator.
+def jpg(symbol, n_samples, clear=False):
+    # optionally, remove earlier images and their labels
+    if clear:
+        os.system("rm images/*")
+        os.system("rm labels/labels.csv")
+    # list of n.png images sorted by number n
+    images = sorted(os.listdir("images")[1:], key=lambda x: int(x[:-4]))
 
-    with open('expression.tex','w') as f:
-        f.write(content)
+    if images != []:
+        start = int(images[-1][:-4]) + 1
+    else:
+        start = 0
 
-    os.system("latex expression scriptname >/dev/null")
-    os.system("dvipng -D 200 expression -T 16cm,5cm >/dev/null")
+    # appends images, starting with (n+1).png if n.png already exists
+    for i in xrange(start, start + n_samples):
+        content,indic = tex_poly(symbol)
 
-    # return io.imread('expression1.png'),pos
-    return indic
+        with open('expression.tex','w') as f:
+            f.write(content)
+
+        os.system("latex expression scriptname >/dev/null")
+        os.system("dvipng -D 200 expression -T 16cm,5cm -o \
+                  images/{}.png >/dev/null".format(i))
+
+        # appends labels to the .csv file
+        with open('labels/labels.csv', 'a') as f:
+            np.savetxt(f, indic.reshape(1, indic.shape[0]))
 
 
-# def gen(n_samples):
-#     labels = np.zeros((1000,7))
-
-labels = np.zeros((1000,7))
-
-for i in xrange(1000):
-    labels[i] = jpg()
-    os.system("mv expression1.png images/expression{}.png".format(i))
-
-np.savetxt("labels/labels.csv", labels)
+        # return io.imread('expression1.png'),pos
+jpg(symbol, 10, True)

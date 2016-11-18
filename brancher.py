@@ -1,10 +1,11 @@
 import random
 import numpy as np
+import pandas as pd
 
-#
-def tex_poly(s):
-    expr,indic = symbol()
-    # print b + "\n\n\n\n\n"
+# Takes a function that generates a string and an indicator.
+# Returns LaTeX around string, as well as indicator
+def tex_poly(f):
+    expr,indic = f()
     # expr = expr.replace("x^0", "").replace("^1 ", " ")
     # expr = expr.replace("- -", "+ ").replace("+ -", "- ")
     multiline = len(expr) > 100
@@ -60,14 +61,15 @@ def quad():
     pos = int(a>0)
     return expr,pos
 
-symbols = map(lambda x: x[:-1], "\gamma, \Gamma, \pi, \Pi, \phi, \mu, \Phi,".split())
-
 # Returns a random Greek symbol, as well as an index indicating which symbol was picked
+# symbols = map(lambda x: x[:-1], "\gamma, \Gamma, \pi, \Pi, \phi, \mu, \Phi,".split())
+df = pd.read_csv("greek.csv", header=None)
+symbols = []
+for i in xrange(df.shape[0]):
+    symbols += df.iloc[i,0].split()
+
 def symbol():
     index = random.randrange(len(symbols))
     indic = np.zeros(len(symbols))
     indic[index] = 1
     return symbols[index], indic
-
-for s in symbols:
-    tex_poly(s)
