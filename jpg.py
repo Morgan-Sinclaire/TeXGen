@@ -44,7 +44,7 @@ def get_data(bounds=False, limit=None, conv=True, jitter=False):
         images = images[:limit]
 
     # makes arrays representing these images and their labels
-    y = np.loadtxt("labels/labels.csv")
+    y = np.loadtxt("labels/labels.csv")[:limit]
 
     sample_size = len(images)
     X = np.zeros((sample_size,393,1259)).astype('uint8')
@@ -61,9 +61,11 @@ def get_data(bounds=False, limit=None, conv=True, jitter=False):
         r = np.random.randint(-jitter, jitter, size=(sample_size, 2))
         height = X.shape[2] - 2*jitter
         width = X.shape[1] - 2*jitter
+        temp = np.zeros((sample_size, height, width))
         for i in xrange(sample_size):
-            X[i] = X[i, jitter + r[i]:height + jitter + r[i],
-                        jitter + r[i]:width + jitter + r[i]]
+            temp[i] = X[i, jitter + r[i,0]:height + jitter + r[i,0],
+                           jitter + r[i,1]:width + jitter + r[i,1]]
+        X = temp
 
     # splits 80/20 into train and test sets, returning these
     split = int(y.shape[0] * .8)
@@ -72,5 +74,6 @@ def get_data(bounds=False, limit=None, conv=True, jitter=False):
     # make dimensions appropriate for CNNs
     if conv:
         X_train, X_test = X_train[:,:,:,np.newaxis], X_test[:,:,:,np.newaxis]
+
 
     return X_train, y_train, X_test, y_test
