@@ -35,5 +35,26 @@ def jpg(symbol, n_samples, clear=False):
             np.savetxt(f, indic.reshape(1, indic.shape[0]))
 
 
-        # return io.imread('expression1.png'),pos
-jpg(symbol, 10, True)
+# assuming images and labels exist, returns train and test data as arrays
+# optionally can take bounds as ((h1,h2),(w1,w2)) to zoom in on the images
+def get_data(bounds=False, limit=None, conv=True):
+    images = sorted(os.listdir("images")[1:], key=lambda x: int(x[:-4]))
+    if limit:
+        images = images[:limit]
+
+    sample_size = len(images)
+    X = np.zeros((sample_size,393,1259)).astype('uint8')
+    for i in xrange(len(images)):
+        X[i] = io.imread('images/' + images[i])
+
+    if bounds:
+        X = X[:, bounds[0][0]:bounds[0][1], bounds[1][0]:bounds[1][1]]
+
+    y = np.loadtxt("labels/labels.csv")
+
+    split = int(y.shape[0] * .8)
+    X_train, y_train, X_test, y_test = X[:split], y[:split], X[split:], y[split:]
+    if conv:
+        X_train, X_test = X_train[:,:,:,np.newaxis], X_test[:,:,:,np.newaxis]
+
+    return X_train, y_train, X_test, y_test
