@@ -2,7 +2,6 @@ import os
 from skimage import io
 from skimage.viewer import ImageViewer
 import numpy as np
-from timeit import timeit
 from brancher import *
 
 # Takes a LaTeX string and indicator label, compiles png and returns indicator.
@@ -37,23 +36,40 @@ def jpg(symbol, n_samples, clear=False):
 
 # assuming images and labels exist, returns train and test data as arrays
 # optionally can take bounds as ((h1,h2),(w1,w2)) to zoom in on the images
-def get_data(bounds=False, limit=None, conv=True):
+def get_data(bounds=False, limit=None, conv=True, jitter=False):
+
+    # obtains list of images in images directory
     images = sorted(os.listdir("images")[1:], key=lambda x: int(x[:-4]))
     if limit:
         images = images[:limit]
+
+    # makes arrays representing these images and their labels
+    y = np.loadtxt("labels/labels.csv")
 
     sample_size = len(images)
     X = np.zeros((sample_size,393,1259)).astype('uint8')
     for i in xrange(len(images)):
         X[i] = io.imread('images/' + images[i])
 
+    # manually specify pixels to subset image
     if bounds:
         X = X[:, bounds[0][0]:bounds[0][1], bounds[1][0]:bounds[1][1]]
 
-    y = np.loadtxt("labels/labels.csv")
+    # given some more room to zoom in on, zooms in on a random place for each
+    # image, having the effect of moving the symbols around
+    if jitter:
+        r = np.random.randint(-jitter, jitter, size=(sample_size, 2))
+        height = X.shape[2] - 2*jitter
+        width = X.shape[1] - 2*jitter
+        for i in xrange(sample_size):
+            X[i] = X[i, jitter + r[i]:height + jitter + r[i],
+                        jitter + r[i]:width + jitter + r[i]]
 
+    # splits 80/20 into train and test sets, returning these
     split = int(y.shape[0] * .8)
     X_train, y_train, X_test, y_test = X[:split], y[:split], X[split:], y[split:]
+
+    # make dimensions appropriate for CNNs
     if conv:
         X_train, X_test = X_train[:,:,:,np.newaxis], X_test[:,:,:,np.newaxis]
 
