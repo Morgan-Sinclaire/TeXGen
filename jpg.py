@@ -1,6 +1,5 @@
 import os
 from skimage import io
-from skimage.viewer import ImageViewer
 import numpy as np
 from brancher import *
 
@@ -8,10 +7,10 @@ from brancher import *
 def jpg(symbol, n_samples, clear=False):
     # optionally, remove earlier images and their labels
     if clear:
-        os.system("rm images/*")
-        os.system("rm labels/labels.csv")
+        os.system("rm images2/*")
+        os.system("rm labels2/labels2.csv")
     # list of n.png images sorted by number n
-    images = sorted(os.listdir("images")[1:], key=lambda x: int(x[:-4]))
+    images = sorted(os.listdir("images2")[1:], key=lambda x: int(x[:-4]))
 
     if images != []:
         start = int(images[-1][:-4]) + 1
@@ -20,17 +19,17 @@ def jpg(symbol, n_samples, clear=False):
 
     # appends images, starting with (n+1).png if n.png already exists
     for i in xrange(start, start + n_samples):
-        content,indic = tex_poly(symbol)
+        content,indic = tex_poly(symbol, 2)
 
         with open('expression.tex','w') as f:
             f.write(content)
 
         os.system("latex expression scriptname >/dev/null")
         os.system("dvipng -D 200 expression -T 16cm,5cm -o \
-                  images/{}.png >/dev/null".format(i))
+                  images2/{}.png >/dev/null".format(i))
 
         # appends labels to the .csv file
-        with open('labels/labels.csv', 'a') as f:
+        with open('labels2/labels2.csv', 'a') as f:
             np.savetxt(f, indic.reshape(1, indic.shape[0]))
 
 
@@ -39,17 +38,18 @@ def jpg(symbol, n_samples, clear=False):
 def get_data(bounds=False, limit=None, conv=True, jitter=False):
 
     # obtains list of images in images directory
-    images = sorted(os.listdir("images")[1:], key=lambda x: int(x[:-4]))
+    images = sorted(os.listdir("images2")[1:], key=lambda x: int(x[:-4]))
     if limit:
         images = images[:limit]
 
     # makes arrays representing these images and their labels
-    y = np.loadtxt("labels/labels.csv")[:limit]
+    y = np.loadtxt("labels2/labels2.csv")[:limit]
+    
 
     sample_size = len(images)
     X = np.zeros((sample_size,393,1259)).astype('uint8')
     for i in xrange(len(images)):
-        X[i] = io.imread('images/' + images[i])
+        X[i] = io.imread('images2/' + images[i])
 
     # manually specify pixels to subset image
     if bounds:
@@ -77,3 +77,21 @@ def get_data(bounds=False, limit=None, conv=True, jitter=False):
 
 
     return X_train, y_train, X_test, y_test
+
+
+# X_train, y_train, X_test, y_test = get_data(bounds=((170,230),(620,680)), jitter=10)
+
+# def trim_whitespace(a):
+#     edge = -1
+#     for i in a.shape[0]:
+#         if np.sum(a[i]) == 0:
+#             edge = i
+#         else:
+#             break
+#
+# def resize(a, dim):
+#     height = dim[0]
+#     width = dim[1]
+#
+#     h_factor = a.shape[0] / height + 1
+#     w_factor = a.shape[1] / width + 1

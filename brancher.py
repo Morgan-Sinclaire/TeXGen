@@ -4,8 +4,8 @@ import pandas as pd
 
 # Takes a function that generates a string and an indicator.
 # Returns LaTeX around string, as well as indicator
-def tex_poly(f):
-    expr,indic = f()
+def tex_poly(f, n=1):
+    expr,indic = f(n)
     # expr = expr.replace("x^0", "").replace("^1 ", " ")
     # expr = expr.replace("- -", "+ ").replace("+ -", "- ")
     multiline = len(expr) > 100
@@ -68,8 +68,12 @@ symbols = []
 for i in xrange(df.shape[0]):
     symbols += df.iloc[i,0].split()
 
-def symbol():
-    index = random.randrange(len(symbols))
+def symbol(n=1):
     indic = np.zeros(len(symbols))
-    indic[index] = 1
-    return symbols[index], indic
+    index = []
+
+    for i in xrange(n):
+        index.append(random.randrange(len(symbols)))
+
+    indic[index] += 1
+    return ' '.join([symbols[i] for i in index]), indic
