@@ -38,18 +38,18 @@ def jpg(symbol, n_samples, clear=False):
 def get_data(bounds=False, limit=None, conv=True, jitter=False):
 
     # obtains list of images in images directory
-    images = sorted(os.listdir("images2")[1:], key=lambda x: int(x[:-4]))
+    images = sorted(os.listdir("images")[1:], key=lambda x: int(x[:-4]))
     if limit:
-        images = images[:limit]
+        images = images[limit[0]:limit[1]]
 
     # makes arrays representing these images and their labels
-    y = np.loadtxt("labels2/labels2.csv")[:limit]
-    
+    y = np.loadtxt("labels/labels.csv")[limit[0]:limit[1]]
+
 
     sample_size = len(images)
     X = np.zeros((sample_size,393,1259)).astype('uint8')
     for i in xrange(len(images)):
-        X[i] = io.imread('images2/' + images[i])
+        X[i] = io.imread('images/' + images[i])
 
     # manually specify pixels to subset image
     if bounds:
@@ -75,20 +75,93 @@ def get_data(bounds=False, limit=None, conv=True, jitter=False):
     if conv:
         X_train, X_test = X_train[:,:,:,np.newaxis], X_test[:,:,:,np.newaxis]
 
-
     return X_train, y_train, X_test, y_test
 
 
-# X_train, y_train, X_test, y_test = get_data(bounds=((170,230),(620,680)), jitter=10)
+# removes all whitespace above, below, left, or right of text
+def trim_whitespace(a):
+    temp = 255 - a
+    rows = np.sum(temp, axis=0)
+    left, right = np.argwhere(rows).min(), np.argwhere(rows).max()
 
-# def trim_whitespace(a):
-#     edge = -1
-#     for i in a.shape[0]:
-#         if np.sum(a[i]) == 0:
-#             edge = i
-#         else:
-#             break
-#
+    cols = np.sum(temp, axis=1)
+    top, bot = np.argwhere(cols).min(), np.argwhere(cols).max()
+
+    a = a[top:bot+1, left:right+1]
+    return a
+
+# given an array image, segments it into characters by empty vertical space
+# returns a list of arrays representing the image segments
+def segment(a, threshold=50):
+    densities = np.sum(255 - a, axis=0)
+    blanks = list(np.argwhere(densities<threshold).flatten())
+    gaps = partition(blanks)
+    for g in gaps:
+        m = 255*a.shape[0]
+        for i in g:
+            if i < m:
+                m = i
+        g = m
+
+    segs = [a[:,:gaps[0]]]
+    segs += [a[:,gaps[i-1]:gaps[i]] for i in range(1, len(gaps))]
+    segs += [a[:,gaps[-1]:]]
+    return segs
+
+# given a sorted list, returns a partition of lists with consecutive numbers
+def partition(l):
+    p = [0]
+    for i in xrange(1, len(l)):
+        if l[i] != l[i-1] + 1:
+            p.append(i)
+    p.append(len(l))
+    return [l[p[i]:p[i+1]] for i in xrange(len(p) - 1)]
+
+
+def predict_word(model, a):
+    segs = segment(trim_whitespace(a[:,:,0]))
+    for arr in segs:
+        temp = np.full((40,40), 255, dtype='uint8')
+        temp[:arr.shape[0],arr.shape[1]] = arr
+        arr = temp
+
+    chars = []
+    for arr in segs:
+        chars.append(symbols[model.predict_classes(arr, batch_size=32, verbose=1)])
+    return " ".join(chars)
+
+    # np.sum(a, axis=1)
+    # top = -1
+    # for i in xrange(a.shape[0]):
+    #     if np.sum(a[i]) == 0:
+    #         top = i
+    #     else:
+    #         break
+    # if top >= 0:
+    #     a = a[top+1:]
+    #
+    # bot = -1
+    # for i in range(a.shape[0])[::-1]:
+    #     if np.sum(a[i]) == 0:
+    #         bot = i
+    #     else:
+    #         break
+    # if bot >= 0:
+    #     a = a[:bot]
+    #
+    # left = -1
+    # for i in xrange(a.shape[1]):
+    #     if np.sum(a[:,i]) == 0:
+    #         left = i
+    #     else:
+    #         break
+    # if top >= 0:
+    #     a = a[top+1:]
+
+
+
+
+
 # def resize(a, dim):
 #     height = dim[0]
 #     width = dim[1]
