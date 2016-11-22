@@ -117,49 +117,31 @@ def partition(l):
     p.append(len(l))
     return [l[p[i]:p[i+1]] for i in xrange(len(p) - 1)]
 
+
+def predict_char(model, char):
+    pass
+
 # takes an image with multiple letters, returns which letters are in the image
+#
 def predict_word(model, a):
 
     # creates a list of images for each character, each in a 40x40 box
     segs = segment(trim_whitespace(a[:,:,0]))
     for i in range(len(segs)):
         temp = np.full((40,40), 255, dtype='uint8')
-        temp[:segs[i].shape[0],:segs[i].shape[1]] = segs[i]
-        segs[i] = temp
+        space = (40 - segs[i].shape[0], 40 - segs[i].shape[1])
+        temp[space[0]/2:space[0]/2 + segs[i].shape[0],
+             space[1]/2:space[1]/2 + segs[i].shape[1]] = segs[i]
+        segs[i] = temp[:,:,np.newaxis]
+
+    segs = np.array(segs)
 
     # has the model make predictions for each character image
     chars = []
-    for arr in segs:
-        chars.append(symbols[model.predict_classes(arr[:,:,np.newaxis], batch_size=32, verbose=1)])
+    ind = model.predict_classes(segs, verbose=0)
+    chars = [symbols[i] for i in ind]
     return " ".join(chars)
 
-    # np.sum(a, axis=1)
-    # top = -1
-    # for i in xrange(a.shape[0]):
-    #     if np.sum(a[i]) == 0:
-    #         top = i
-    #     else:
-    #         break
-    # if top >= 0:
-    #     a = a[top+1:]
-    #
-    # bot = -1
-    # for i in range(a.shape[0])[::-1]:
-    #     if np.sum(a[i]) == 0:
-    #         bot = i
-    #     else:
-    #         break
-    # if bot >= 0:
-    #     a = a[:bot]
-    #
-    # left = -1
-    # for i in xrange(a.shape[1]):
-    #     if np.sum(a[:,i]) == 0:
-    #         left = i
-    #     else:
-    #         break
-    # if top >= 0:
-    #     a = a[top+1:]
 
 
 
