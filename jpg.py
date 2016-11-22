@@ -38,18 +38,18 @@ def jpg(symbol, n_samples, clear=False):
 def get_data(bounds=False, limit=None, conv=True, jitter=False):
 
     # obtains list of images in images directory
-    images = sorted(os.listdir("images")[1:], key=lambda x: int(x[:-4]))
+    images = sorted(os.listdir("images2")[1:], key=lambda x: int(x[:-4]))
     if limit:
         images = images[limit[0]:limit[1]]
 
     # makes arrays representing these images and their labels
-    y = np.loadtxt("labels/labels.csv")[limit[0]:limit[1]]
+    y = np.loadtxt("labels2/labels2.csv")[limit[0]:limit[1]]
 
 
     sample_size = len(images)
     X = np.zeros((sample_size,393,1259)).astype('uint8')
     for i in xrange(len(images)):
-        X[i] = io.imread('images/' + images[i])
+        X[i] = io.imread('images2/' + images[i])
 
     # manually specify pixels to subset image
     if bounds:
@@ -96,12 +96,12 @@ def segment(a, threshold=50):
     densities = np.sum(255 - a, axis=0)
     blanks = list(np.argwhere(densities<threshold).flatten())
     gaps = partition(blanks)
-    for g in gaps:
+    for i in xrange(len(gaps)):
         m = 255*a.shape[0]
-        for i in g:
-            if i < m:
-                m = i
-        g = m
+        for g in gaps[i]:
+            if g < m:
+                m = g
+        gaps[i] = m
 
     segs = [a[:,:gaps[0]]]
     segs += [a[:,gaps[i-1]:gaps[i]] for i in range(1, len(gaps))]
@@ -117,17 +117,20 @@ def partition(l):
     p.append(len(l))
     return [l[p[i]:p[i+1]] for i in xrange(len(p) - 1)]
 
-
+# takes an image with multiple letters, returns which letters are in the image
 def predict_word(model, a):
-    segs = segment(trim_whitespace(a[:,:,0]))
-    for arr in segs:
-        temp = np.full((40,40), 255, dtype='uint8')
-        temp[:arr.shape[0],arr.shape[1]] = arr
-        arr = temp
 
+    # creates a list of images for each character, each in a 40x40 box
+    segs = segment(trim_whitespace(a[:,:,0]))
+    for i in range(len(segs)):
+        temp = np.full((40,40), 255, dtype='uint8')
+        temp[:segs[i].shape[0],:segs[i].shape[1]] = segs[i]
+        segs[i] = temp
+
+    # has the model make predictions for each character image
     chars = []
     for arr in segs:
-        chars.append(symbols[model.predict_classes(arr, batch_size=32, verbose=1)])
+        chars.append(symbols[model.predict_classes(arr[:,:,np.newaxis], batch_size=32, verbose=1)])
     return " ".join(chars)
 
     # np.sum(a, axis=1)
