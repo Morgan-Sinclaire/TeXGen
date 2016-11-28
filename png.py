@@ -7,10 +7,10 @@ from brancher import *
 def png(symbol, n_samples, clear=False):
     # optionally, remove earlier images and their labels
     if clear:
-        os.system("rm images2/*")
-        os.system("rm labels2/labels2.csv")
+        os.system("rm imagesn/*")
+        os.system("rm labelsn/labelsn.csv")
     # list of n.png images sorted by number n
-    images = sorted(os.listdir("images2")[1:], key=lambda x: int(x[:-4]))
+    images = sorted(os.listdir("imagesn")[1:], key=lambda x: int(x[:-4]))
 
     if images != []:
         start = int(images[-1][:-4]) + 1
@@ -19,17 +19,17 @@ def png(symbol, n_samples, clear=False):
 
     # appends images, starting with (n+1).png if n.png already exists
     for i in xrange(start, start + n_samples):
-        content,indic = tex_poly(symbol, 2)
+        content,indic = tex_poly(symbol)
 
         with open('expression.tex','w') as f:
             f.write(content)
 
         os.system("latex expression scriptname >/dev/null")
         os.system("dvipng -D 200 expression -T 16cm,5cm -o \
-                  images2/{}.png >/dev/null".format(i))
+                  imagesn/{}.png >/dev/null".format(i))
 
         # appends labels to the .csv file
-        with open('labels2/labels2.csv', 'a') as f:
+        with open('labelsn/labelsn.csv', 'a') as f:
             np.savetxt(f, indic.reshape(1, indic.shape[0]))
 
 
@@ -38,17 +38,18 @@ def png(symbol, n_samples, clear=False):
 def get_data(bounds=False, limit=None, conv=True, jitter=False):
 
     # obtains list of images in images directory
-    images = sorted(os.listdir("images2")[1:], key=lambda x: int(x[:-4]))
+    images = sorted(os.listdir("imagesn")[1:], key=lambda x: int(x[:-4]))
     if limit:
         images = images[limit[0]:limit[1]]
 
     # makes arrays representing these images and their labels
-    y = np.loadtxt("labels2/labels2.csv")[limit[0]:limit[1]].astype('uint8')
+    # note: uint is important, since these are images
+    y = np.loadtxt("labelsn/labelsn.csv")[limit[0]:limit[1]].astype('int8')
 
     sample_size = len(images)
     X = np.zeros((sample_size,393,1259)).astype('uint8')
     for i in xrange(len(images)):
-        X[i] = io.imread('images2/' + images[i])
+        X[i] = io.imread('imagesn/' + images[i])
 
     # manually specify pixels to subset image
     if bounds:
@@ -56,7 +57,6 @@ def get_data(bounds=False, limit=None, conv=True, jitter=False):
 
     # given some more room to zoom in on, zooms in on a random place for each
     # image, having the effect of moving the symbols around
-    print X.shape
     if jitter:
         r = np.random.randint(-jitter, jitter, size=(sample_size, 2))
         height = X.shape[1] - 2*jitter
@@ -92,11 +92,11 @@ def trim_whitespace(a):
 
 # given 2D-array image, segments it into characters by empty vertical space
 # returns a list of arrays representing the image segments
-def segment(a, threshold=20):
+def segment(a, threshold=51):
     # find indices of vertical strips where pixels are entirely white,
     # or within threshold
     densities = np.sum(255 - a, axis=0)
-    blanks = list(np.argwhere(densities[5:-5]<=20).flatten()+5)
+    blanks = list(np.argwhere(densities[5:-5]<=threshold).flatten()+5)
     gaps = partition(blanks)
     for i in xrange(len(gaps)):
         m = 255*a.shape[0]
@@ -111,6 +111,7 @@ def segment(a, threshold=20):
     segs += [a[:,gaps[-1]:]]
 
     # puts each character in the middle of a 40x40 box
+    # note: uint is important, since these are images
     for i in range(len(segs)):
         temp = np.full((40,40), 255, dtype='uint8')
         space = (40 - segs[i].shape[0], 40 - segs[i].shape[1])
@@ -145,7 +146,22 @@ def predict_word(model, a):
     chars = [symbols[i] for i in ind]
     return " ".join(chars)
 
+def score_words(model, X_test, y_test, n=None):
+    if not n:
+        n = X_test.shape[0]
 
+    num_correct = 0
+
+    for i in xrange(n):
+        pred = predict_word(model, X_test[i])
+        indic = y_test[i]
+        label = ' '.join([symbols[i] for i in indic[np.argwhere(indic>=0)].flatten()])
+        if pred == label:
+            num_correct += 1
+
+    print "Accuracy: {}% on {} examples.".format(100. * num_correct / n, n)
+#
+#     return a
 # def resize(a, dim):
 #     height = dim[0]
 #     width = dim[1]
