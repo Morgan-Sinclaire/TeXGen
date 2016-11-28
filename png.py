@@ -92,11 +92,11 @@ def trim_whitespace(a):
 
 # given 2D-array image, segments it into characters by empty vertical space
 # returns a list of arrays representing the image segments
-def segment(a, threshold=0):
+def segment(a, threshold=20):
     # find indices of vertical strips where pixels are entirely white,
     # or within threshold
     densities = np.sum(255 - a, axis=0)
-    blanks = list(np.argwhere(densities<=threshold).flatten())
+    blanks = list(np.argwhere(densities[5:-5]<=20).flatten()+5)
     gaps = partition(blanks)
     for i in xrange(len(gaps)):
         m = 255*a.shape[0]
