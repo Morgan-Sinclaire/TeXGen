@@ -56,10 +56,11 @@ def get_data(bounds=False, limit=None, conv=True, jitter=False):
 
     # given some more room to zoom in on, zooms in on a random place for each
     # image, having the effect of moving the symbols around
+    print X.shape
     if jitter:
         r = np.random.randint(-jitter, jitter, size=(sample_size, 2))
-        height = X.shape[2] - 2*jitter
-        width = X.shape[1] - 2*jitter
+        height = X.shape[1] - 2*jitter
+        width = X.shape[2] - 2*jitter
         temp = np.zeros((sample_size, height, width))
         for i in xrange(sample_size):
             temp[i] = X[i, jitter + r[i,0]:height + jitter + r[i,0],
@@ -74,7 +75,6 @@ def get_data(bounds=False, limit=None, conv=True, jitter=False):
     if conv:
         X_train, X_test = X_train[:,:,:,np.newaxis], X_test[:,:,:,np.newaxis]
 
-    print y_train[:10]
     return X_train, y_train, X_test, y_test
 
 
@@ -92,7 +92,9 @@ def trim_whitespace(a):
 
 # given 2D-array image, segments it into characters by empty vertical space
 # returns a list of arrays representing the image segments
-def segment(a, threshold=30):
+def segment(a, threshold=0):
+    # find indices of vertical strips where pixels are entirely white,
+    # or within threshold
     densities = np.sum(255 - a, axis=0)
     blanks = list(np.argwhere(densities<=threshold).flatten())
     gaps = partition(blanks)
@@ -103,9 +105,20 @@ def segment(a, threshold=30):
                 m = g
         gaps[i] = m
 
+    # returns list of arrays representing the segments for each character
     segs = [a[:,:gaps[0]]]
     segs += [a[:,gaps[i-1]:gaps[i]] for i in range(1, len(gaps))]
     segs += [a[:,gaps[-1]:]]
+
+    # puts each character in the middle of a 40x40 box
+    for i in range(len(segs)):
+        temp = np.full((40,40), 255, dtype='uint8')
+        space = (40 - segs[i].shape[0], 40 - segs[i].shape[1])
+        temp[space[0]/2:space[0]/2 + segs[i].shape[0],
+             space[1]/2:space[1]/2 + segs[i].shape[1]] = segs[i]
+        segs[i] = temp[:,:,np.newaxis]
+
+    segs = np.array(segs)
     return segs
 
 # given a sorted list, returns a partition of lists with consecutive numbers
@@ -123,17 +136,8 @@ def predict_char(model, char):
 
 # takes a 3D image with multiple letters, returns which letters are in the image
 def predict_word(model, a):
-
-    # creates a list of images for each character, each in a 40x40 box
+    # get character segments to feed into character-reading model
     segs = segment(trim_whitespace(a[:,:,0]))
-    for i in range(len(segs)):
-        temp = np.full((40,40), 255, dtype='uint8')
-        space = (40 - segs[i].shape[0], 40 - segs[i].shape[1])
-        temp[space[0]/2:space[0]/2 + segs[i].shape[0],
-             space[1]/2:space[1]/2 + segs[i].shape[1]] = segs[i]
-        segs[i] = temp[:,:,np.newaxis]
-
-    segs = np.array(segs)
 
     # has the model make predictions for each character image
     chars = []
@@ -141,10 +145,6 @@ def predict_word(model, a):
     chars = [symbols[i] for i in ind]
     return " ".join(chars)
 
-
-
-
-print 2
 
 # def resize(a, dim):
 #     height = dim[0]
