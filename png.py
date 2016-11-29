@@ -92,7 +92,7 @@ def trim_whitespace(a):
 
 # given 2D-array image, segments it into characters by empty vertical space
 # returns a list of arrays representing the image segments
-def segment(a, threshold=51):
+def segment(a, threshold=0):
     # find indices of vertical strips where pixels are entirely white,
     # or within threshold
     densities = np.sum(255 - a, axis=0)
@@ -115,8 +115,11 @@ def segment(a, threshold=51):
     for i in range(len(segs)):
         temp = np.full((40,40), 255, dtype='uint8')
         space = (40 - segs[i].shape[0], 40 - segs[i].shape[1])
-        temp[space[0]/2:space[0]/2 + segs[i].shape[0],
-             space[1]/2:space[1]/2 + segs[i].shape[1]] = segs[i]
+        if space[0] >= 0 and space[1] >= 0:
+            temp[space[0]/2:space[0]/2 + segs[i].shape[0],
+                 space[1]/2:space[1]/2 + segs[i].shape[1]] = segs[i]
+        else:
+            segs[i] = segs[i][:40,:40]
         segs[i] = temp[:,:,np.newaxis]
 
     segs = np.array(segs)
@@ -155,9 +158,13 @@ def score_words(model, X_test, y_test, n=None):
     for i in xrange(n):
         pred = predict_word(model, X_test[i])
         indic = y_test[i]
-        label = ' '.join([symbols[i] for i in indic[np.argwhere(indic>=0)].flatten()])
+        label = ' '.join([symbols[j] for j in indic[np.argwhere(indic>=0)].flatten()])
         if pred == label:
             num_correct += 1
+        # if np.argwhere(indic>=0).shape[0] == 10 and pred == label:
+        #     print i
+        if np.argwhere(indic>=0).shape[0] - len(pred.split()) >= 2:
+            print i
 
     print "Accuracy: {}% on {} examples.".format(100. * num_correct / n, n)
 #
